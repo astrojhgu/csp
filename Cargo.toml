@@ -30,7 +30,7 @@ regex = "1.7.1"
 ndarray={version='0.15.6', features=["rayon"]}
 ndarray-npy='0.8.1'
 suppaftp = "5.1.1"
-
+core_affinity='0.8.1'
 
 [dependencies.clap]
 features = ['derive']
