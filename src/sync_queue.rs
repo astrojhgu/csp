@@ -10,7 +10,7 @@ where
     T: Clone + Default,
 {
     pub fn new(n: usize) -> (Self, Vec<Sender<(usize, T)>>) {
-        let (senders, qin): (Vec<_>, Vec<_>) = (0..n).map(|_| bounded(4)).unzip();
+        let (senders, qin): (Vec<_>, Vec<_>) = (0..n).map(|_| unbounded).unzip();
 
         (
             Self {

@@ -1,5 +1,5 @@
 use core_affinity::{set_for_current, CoreId};
-use std::{net::UdpSocket};
+use std::net::UdpSocket;
 
 use csp::data_frame::DbfDataFrame;
 

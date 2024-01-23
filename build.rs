@@ -1,7 +1,6 @@
-use std::{path::PathBuf, env::var};
+use std::{env::var, path::PathBuf};
 
-
-pub fn main(){
+pub fn main() {
     println!("cargo:rustc-link-search={}", "../csp_channelizer");
     println!("cargo:rustc-link-lib=cspch");
     println!("cargo:rustc-link-lib=fftw3f");
@@ -9,9 +8,15 @@ pub fn main(){
     println!("cargo:rustc-link-lib=cudart");
     println!("cargo:rustc-link-lib=cufft");
     println!("cargo:rustc-link-lib=stdc++");
-    
-    let header=PathBuf::from("../csp_channelizer/cspch.h");
-    println!("{}", format!("cargo:rerun-if-changed={}",header.to_str().expect("invalid path")));
+
+    let header = PathBuf::from("../csp_channelizer/cspch.h");
+    println!(
+        "{}",
+        format!(
+            "cargo:rerun-if-changed={}",
+            header.to_str().expect("invalid path")
+        )
+    );
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
@@ -29,5 +34,4 @@ pub fn main(){
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
-
 }

@@ -40,7 +40,7 @@ impl DbfCoeffs {
     }
 
     pub fn read_from<R: Read>(r: &mut R) -> Self {
-        let mut data = vec![Complex::<i16>::default(); NCH_TOTAL * NPORTS_TOTAL * NBEAMS ];
+        let mut data = vec![Complex::<i16>::default(); NCH_TOTAL * NPORTS_TOTAL * NBEAMS];
         let data_slice = unsafe {
             std::slice::from_raw_parts_mut(
                 data.as_mut_ptr() as *mut u8,
@@ -48,7 +48,10 @@ impl DbfCoeffs {
             )
         };
         r.read_exact(data_slice).unwrap();
-        let data: Vec<_> = data.iter().map(|&x| Complex::new(i16::from_be(x.re), i16::from_be(x.im))).collect();
+        let data: Vec<_> = data
+            .iter()
+            .map(|&x| Complex::new(i16::from_be(x.re), i16::from_be(x.im)))
+            .collect();
         Self::new(&data)
     }
 
@@ -70,15 +73,15 @@ impl DbfCoeffs {
     }
 
     pub fn reverse_phase(&mut self) {
-        self.0.iter_mut().for_each(|x|{
-            x.im=-x.im;
+        self.0.iter_mut().for_each(|x| {
+            x.im = -x.im;
         });
     }
 }
 
 impl Default for DbfCoeffs {
     fn default() -> Self {
-        let data = Array3::ones((NCH_TOTAL, NPORTS_TOTAL, NBEAMS))*i16::MAX;
+        let data = Array3::ones((NCH_TOTAL, NPORTS_TOTAL, NBEAMS)) * i16::MAX;
         Self(data)
     }
 }

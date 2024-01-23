@@ -7,7 +7,11 @@ use csp::{
     utils::write_data,
 };
 
-use std::{fs::OpenOptions, io::Write};
+use std::{
+    fs::OpenOptions,
+    io::Write,
+    net::{SocketAddr, SocketAddrV4, UdpSocket},
+};
 
 use chrono::prelude::*;
 
@@ -18,7 +22,7 @@ const PKT_LEN: usize = 8080;
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// config
-    #[clap(short = 'd', long = "dev", num_args(1..), value_name="devs")]
+    #[clap(short = 'd', long = "addr", num_args(1..), value_name="ip:port")]
     dev: Vec<String>,
 
     #[clap(short = 'o', long = "out", value_name = "out prefix")]
@@ -51,14 +55,23 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    let dev_name = args.dev;
-    println!("{dev_name:?}");
+    let src_ips = args.dev;
+    let mut src_addrs = src_ips
+        .iter()
+        .map(|s| s.parse::<SocketAddrV4>().unwrap())
+        .collect::<Vec<_>>();
+    src_addrs.sort();
+    let src_addrs = src_addrs;
+    println!("{:?}", src_addrs);
+    //std::process::exit(0);
+
+    println!("{src_ips:?}");
 
     let nfine_eff = args.nfine;
     let nfine_full = nfine_eff * 2;
 
     let coeffs = calc_coeff(nfine_full, args.tap_per_fine_ch, args.k);
-    let mut channelizers = dev_name
+    let mut channelizers = src_ips
         .iter()
         .map(|_| CspChannelizer::new(NFRAME_PER_CORR, NCH_PER_STREAM, nfine_full, &coeffs))
         .collect::<Vec<_>>();
@@ -67,66 +80,38 @@ fn main() {
 
     let cnt = args.cnt;
 
-    let ndevs = dev_name.len();
-    let (corr_queue, receiver): (Vec<_>, Vec<_>) = (0..ndevs).map(|_| CorrDataQueue::new()).unzip();
+    let n_stations = src_ips.len();
+    let (mut corr_queue, receiver): (Vec<_>, Vec<_>) =
+        (0..n_stations).map(|_| CorrDataQueue::new()).unzip();
 
-    let _recv_threads: Vec<_> = dev_name
-        .iter()
-        .zip(corr_queue.into_iter())
-        .map(|(dvn, mut sender)| {
-            let device = pcap::Device::list()
-                .unwrap()
-                .iter()
-                .find(|&d| d.name == *dvn)
-                .unwrap()
-                .clone();
-            println!("Using device {}", device.name);
+    std::thread::spawn(move || {
+        let udp_socket = UdpSocket::bind("0.0.0.0:4001").unwrap();
+        let mut old_pkt_id = 0;
+        let mut pkt_cnt = 0;
+        let mut data = DbfDataFrame::default();
+        let buf = unsafe {
+            std::slice::from_raw_parts_mut((&mut data) as *mut DbfDataFrame as *mut u8, 8080)
+        };
+        loop {
+            let (len, src_addr) = udp_socket.recv_from(buf).unwrap();
+            if len != PKT_LEN {
+                continue;
+            }
 
-            let cap = pcap::Capture::from_device(device)
-                .unwrap()
-                .immediate_mode(false)
-                .buffer_size(1024 * 1024 * 1024)
-                .promisc(false)
-                .timeout(0);
-
-            let mut cap = cap.open().unwrap();
-            cap.direction(pcap::Direction::In).unwrap();
-
-            let _dvn = dvn.clone();
-            std::thread::spawn(move || {
-                let mut old_pkt_id = 0;
-                let mut pkt_cnt = 0;
-                loop {
-                    match cap.next_packet() {
-                        Ok(pkt) if pkt.data.len() == PKT_LEN + 42 => {
-                            let frame_buf1 = DbfDataFrame::from_raw(&pkt.data[42..]); //skip udp head
-                            let pkt_id = frame_buf1.pkt_id as usize;
-                            //println!("{} {}",dvn, pkt_id);
-                            if pkt_cnt == 0 {
-                                println!("c0={pkt_id}",);
-                            } else if old_pkt_id + 1 != pkt_id {
-                                println!(
-                                    "dropped {} pkts {} {}",
-                                    pkt_id - old_pkt_id - 1,
-                                    old_pkt_id,
-                                    pkt_id
-                                );
-                            }
-
-                            pkt_cnt += 1;
-                            old_pkt_id = pkt_id;
-
-                            sender.push(&frame_buf1);
-                        }
-                        Err(e) => println!("{e:?}"),
-                        Ok(pkt) => {
-                            println!("len: {}", pkt.data.len());
-                        }
+            //println!("src_addr:{}", src_addr);
+            match src_addr {
+                SocketAddr::V4(s) => match src_addrs.binary_search(&s) {
+                    Ok(i) => {
+                        corr_queue[i].push(&data)},
+                    Err(_) => {
+                        panic!("unregistered station addr");
                     }
-                }
-            })
-        })
-        .collect();
+                },
+                SocketAddr::V6(_s) => {
+                    continue},
+            }
+        }
+    });
 
     let mut channelized_data = vec![0_f32; channelizers[0].output_buf_len()];
     let mut correlator = Correlator::new(NCH_PER_STREAM * nfine_eff, NFRAME_PER_CORR / nfine_full);
@@ -137,8 +122,8 @@ fn main() {
         let mut max_corr_id = 0;
         receiver
             .iter()
-            .zip(dev_name.iter().zip(channelizers.iter_mut()))
-            .for_each(|(r, (_dn, channelizer1))| {
+            .zip(channelizers.iter_mut())
+            .for_each(|(r, channelizer1)| {
                 let x = r.recv().unwrap();
                 println!("{} {}", x.corr_id, receiver.len());
                 corr_id_list.push(x.corr_id);
@@ -155,9 +140,9 @@ fn main() {
             .zip(
                 receiver
                     .iter()
-                    .zip(dev_name.iter().zip(channelizers.iter_mut())),
+                    .zip(channelizers.iter_mut()),
             )
-            .for_each(|(&cid, (r, (_dn, channelizer1)))| {
+            .for_each(|(&cid, (r, channelizer1))| {
                 if cid != max_corr_id {
                     println!("{} mismatch", cid);
                     let x = r.recv().unwrap();

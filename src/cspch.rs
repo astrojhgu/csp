@@ -1,6 +1,6 @@
 use crate::{
     bindings::{
-        channelize, channelize_no_out, create_channelizer, destroy_channelizer,create_correlator,
+        channelize, channelize_no_out, create_channelizer, create_correlator, destroy_channelizer,
         Channelizer,
     },
     cfg::{NCH_PER_STREAM, NFRAME_PER_CORR},
@@ -12,7 +12,6 @@ pub struct CspChannelizer {
     pub nch_fine_per_coarse_full: usize,
     c_channelizer: *mut Channelizer,
 }
-
 
 impl CspChannelizer {
     pub fn new(
@@ -71,25 +70,35 @@ pub fn calc_coeff(nch: usize, tap_per_ch: usize, k: f32) -> Vec<f32> {
     result
 }
 
-
-pub struct Correlator{
-    pub nsteps: usize, 
-    pub nch: usize, 
+pub struct Correlator {
+    pub nsteps: usize,
+    pub nch: usize,
     pub c_correlator: *mut crate::bindings::Correlator,
 }
 
-impl Correlator{
-    pub fn new(nch: usize, nsteps: usize)->Self{
-        Self { nsteps, nch, c_correlator: unsafe{create_correlator(nch, nsteps)} }
+impl Correlator {
+    pub fn new(nch: usize, nsteps: usize) -> Self {
+        Self {
+            nsteps,
+            nch,
+            c_correlator: unsafe { create_correlator(nch, nsteps) },
+        }
     }
 
-    pub fn correlate(&mut self, ch1: &CspChannelizer, ch2: &CspChannelizer, result: &mut [f32]){
-        assert_eq!(result.len(), self.nch*2);
-        assert_eq!(self.nch*2, ch1.nch_coarse*ch1.nch_fine_per_coarse_full);
-        assert_eq!(self.nch*self.nsteps*2, ch1.nch_coarse*ch1.nsteps);
+    pub fn correlate(&mut self, ch1: &CspChannelizer, ch2: &CspChannelizer, result: &mut [f32]) {
+        assert_eq!(result.len(), self.nch * 2);
+        assert_eq!(self.nch * 2, ch1.nch_coarse * ch1.nch_fine_per_coarse_full);
+        assert_eq!(self.nch * self.nsteps * 2, ch1.nch_coarse * ch1.nsteps);
         assert_eq!(ch1.nsteps, ch2.nsteps);
         assert_eq!(ch1.nch_coarse, ch2.nch_coarse);
         assert_eq!(ch1.nch_fine_per_coarse_full, ch2.nch_fine_per_coarse_full);
-        unsafe{crate::bindings::correlate(self.c_correlator, ch1.c_channelizer, ch2.c_channelizer, result.as_mut_ptr())}
+        unsafe {
+            crate::bindings::correlate(
+                self.c_correlator,
+                ch1.c_channelizer,
+                ch2.c_channelizer,
+                result.as_mut_ptr(),
+            )
+        }
     }
 }

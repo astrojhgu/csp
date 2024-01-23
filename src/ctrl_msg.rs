@@ -98,7 +98,9 @@ impl MsgContent {
             from_str(std::str::from_utf8(buf).expect("failed to decode")).expect("failed to parse");
 
         match self {
-            WorkMode { .. } => reply_msg["msg_type"].as_str().expect("failed to parse") == "WorkMode", //
+            WorkMode { .. } => {
+                reply_msg["msg_type"].as_str().expect("failed to parse") == "WorkMode"
+            } //
             Status { .. } => reply_msg["msg_type"].as_str().expect("failed to parse") == "Status", //
             Reset { .. } => reply_msg["msg_type"].as_str().expect("failed to parse") == "Reset", //
             SelfTest { .. } => {
@@ -112,14 +114,11 @@ impl MsgContent {
             BeamCtrl { .. } => {
                 reply_msg["msg_type"].as_str().expect("failed to parse") == "BeamCtrl"
             } //
-            MultiCtrl { .. } => {
-                match reply_msg["msg_type"].as_str().expect("failed to parse")
-                {
-                    "MultiCtrl" => true,
-                    "IPAddr" =>true,
-                    _ => false
-                }
-            }
+            MultiCtrl { .. } => match reply_msg["msg_type"].as_str().expect("failed to parse") {
+                "MultiCtrl" => true,
+                "IPAddr" => true,
+                _ => false,
+            },
             AttSet { .. } => reply_msg["msg_type"].as_str().expect("failed to parse") == "AttSet", //
         }
     }

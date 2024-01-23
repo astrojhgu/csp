@@ -1,13 +1,11 @@
-
 use lockfree_object_pool::{LinearObjectPool, LinearOwnedReusable};
 use std::{default::Default, sync::Arc};
-
 
 use std::io::Write;
 
 use byteorder::{ByteOrder, LittleEndian};
 
-use crossbeam::channel::{bounded, Receiver, Sender};
+use crossbeam::channel::{unbounded, Receiver, Sender};
 
 use crate::cfg::*;
 
@@ -17,11 +15,11 @@ pub struct DbfDataFrame {
     //time domain data
     pub head1: u64,
     pub head2: u64,
-    pub head3: u64, 
-    pub head4: u64, 
+    pub head3: u64,
+    pub head4: u64,
     pub date: u64,
     pub subsec: u64,
-    pub beam_id: u64, 
+    pub beam_id: u64,
     pub pkt_id: u64,
     pub start: u64,
     pub payload: [i16; NCH_PER_STREAM * 2 * NFRAME_PER_PKT],
@@ -33,11 +31,11 @@ impl Default for DbfDataFrame {
         DbfDataFrame {
             head1: 0,
             head2: 0,
-            head3: 0, 
-            head4: 0, 
+            head3: 0,
+            head4: 0,
             date: 0,
             subsec: 0,
-            beam_id: 0, 
+            beam_id: 0,
             pkt_id: 0,
             start: 0,
             payload: [RawDataType::default(); NCH_PER_STREAM * 2 * NFRAME_PER_PKT],
@@ -57,26 +55,22 @@ impl DbfDataFrame {
 
         LittleEndian::read_u64_into(&src[..72], ptr_head);
         //result.pkt_id=result.pkt_id.swap_bytes();
-        let payload_begin=72;
-        let payload_end=72
-            + NCH_PER_STREAM * 2 * NFRAME_PER_PKT * std::mem::size_of::<RawDataType>();
-        LittleEndian::read_i16_into(
-            &src[payload_begin..payload_end],
-            &mut result.payload,
-        );
-        
-        result.tail=LittleEndian::read_u64(&src[payload_end..]);
+        let payload_begin = 72;
+        let payload_end =
+            72 + NCH_PER_STREAM * 2 * NFRAME_PER_PKT * std::mem::size_of::<RawDataType>();
+        LittleEndian::read_i16_into(&src[payload_begin..payload_end], &mut result.payload);
+
+        result.tail = LittleEndian::read_u64(&src[payload_end..]);
 
         assert_eq!(result.head1, 0xa5a5_a5a5_a5a5_a5a5_u64);
         assert_eq!(result.head2, 0xa5a5_a5a5_a5a5_a5a5_u64);
         assert_eq!(result.head3, 0xbc55_0000_bc55_0000_u64);
         assert_eq!(result.head4, 0xeeee_0000_0000_0000_u64);
         assert_eq!(result.start, 0x7777_7777_7777_7777_u64);
-        assert_eq!(result.tail,  0xbcbc_bcbc_bcbc_bcbc_u64);
+        assert_eq!(result.tail, 0xbcbc_bcbc_bcbc_bcbc_u64);
         result
     }
 
-    
     pub fn write_payload<W>(&self, out: &mut W)
     where
         W: Write,
@@ -153,7 +147,7 @@ pub struct CorrDataQueue {
 
 impl CorrDataQueue {
     pub fn new() -> (Self, Receiver<LinearOwnedReusable<CorrDataFrame>>) {
-        let (sender, receiver) = bounded(4);
+        let (sender, receiver) = unbounded();
         let pool = Arc::new(LinearObjectPool::new(
             || {
                 println!("initialized");
@@ -182,7 +176,10 @@ impl CorrDataQueue {
         //println!("{}", frame_id);
         if let Some(last_pkt_id) = self.last_pkt_id {
             if last_pkt_id + 1 != pkt.pkt_id as usize {
-                eprintln!("dropped {} packets", pkt.pkt_id as i64 - last_pkt_id as i64- 1);
+                eprintln!(
+                    "dropped {} packets",
+                    pkt.pkt_id as i64 - last_pkt_id as i64 - 1
+                );
             }
         }
         self.last_pkt_id = Some(pkt.pkt_id as usize);
@@ -191,7 +188,12 @@ impl CorrDataQueue {
         if next_frame_id != frame_id {
             //println!("")
             let result = std::mem::replace(&mut self.tmp_corr_data_frame, self.pool.pull_owned());
-            self.sender.send(result).unwrap();
+            match self.sender.send(result) {
+                Ok(_) => {}
+                Err(e) => {
+                    panic!("send error");
+                }
+            }
         }
         let _offset = self.tmp_corr_data_frame.fill(pkt);
         //println!("{:?}", &self.tmp_corr_data_frame.payload[offset..offset+32]);
