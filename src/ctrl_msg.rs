@@ -4,7 +4,7 @@ use binrw::{
     io::{Cursor, Read, Seek, Write},
     BinRead, BinResult, BinWrite,
 };
-use regex::Regex;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, Value};
 use std::num::Wrapping;
