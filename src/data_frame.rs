@@ -46,7 +46,7 @@ impl Default for DbfDataFrame {
 
 impl DbfDataFrame {
     pub fn from_raw(src: &[u8]) -> Self {
-        assert_eq!(src.len(), 8080);
+        assert_eq!(src.len(), std::mem::size_of::<DbfDataFrame>());
 
         let mut result = DbfDataFrame::default();
         let ptr_head = unsafe {
