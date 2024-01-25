@@ -29,11 +29,12 @@ binrw = "0.13.3"
 regex = "1.7.1"
 ndarray={version='0.15.6', features=["rayon"]}
 ndarray-npy='0.8.1'
-suppaftp = "5.1.1"
+suppaftp = "5.3.0"
 core_affinity='0.8.1'
 tokio={version='1.35.1', features = ['full']}
 futures='0.3.30'
 socket2='0.5.5'
+
 
 [dependencies.clap]
 features = ['derive']

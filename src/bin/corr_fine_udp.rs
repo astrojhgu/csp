@@ -11,9 +11,7 @@ use csp::{
 };
 
 use std::{
-    fs::OpenOptions,
-    io::Write,
-    net::{SocketAddr, SocketAddrV4, UdpSocket},
+    collections::HashMap, fs::OpenOptions, hash::RandomState, io::Write, net::{SocketAddr, SocketAddrV4, UdpSocket}
 };
 
 use socket2::{Socket, Domain, Type};
@@ -49,12 +47,12 @@ fn main() {
     let cfg:Cfg=from_reader(std::fs::File::open(&args.cfg_file).unwrap()).unwrap();
 
     
-    let mut src_addrs = cfg.src_ip
+    let src_addrs:HashMap<SocketAddrV4, usize, RandomState> = cfg.src_ip
         .iter()
         .map(|s| s.parse::<SocketAddrV4>().unwrap())
-        .collect::<Vec<_>>();
-    src_addrs.sort();
-    let src_addrs = src_addrs;
+        .enumerate().map(|(a,b)|(b,a)).collect();
+    
+    
     println!("{:?}", src_addrs);
     //std::process::exit(0);
 
@@ -107,10 +105,10 @@ fn main() {
             
             //println!("src_addr:{}", src_addr);
             match src_addr {
-                SocketAddr::V4(s) => match src_addrs.binary_search(&s) {
-                    Ok(i) => {
-                        corr_queue[i].push(&data)},
-                    Err(_) => {
+                SocketAddr::V4(s) => match src_addrs.get(&s) {
+                    Some(i) => {
+                        corr_queue[*i].push(&data)},
+                    None => {
                         panic!("unregistered station addr");
                     }
                 },
@@ -123,7 +121,7 @@ fn main() {
     //let mut channelized_data = vec![0_f32; channelizers[0].output_buf_len()];
     let mut correlator = Correlator::new(NCH_PER_STREAM * nfine_eff, NFRAME_PER_CORR / nfine_full);
     let mut corr_data = vec![0f32; NCH_PER_STREAM * nfine_eff * 2];
-    let mut idx = 0;
+    //let mut idx = 0;
     loop {
         let mut corr_id_list = Vec::new();
         let mut max_corr_id = 0;
@@ -201,10 +199,10 @@ fn main() {
                 }
             }
         }
-        idx += 1;
+        //idx += 1;
     }
 
-    println!("finished");
+    //println!("finished");
 
     //for i in 0..cnt{
     //    println!("{}", i);

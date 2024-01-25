@@ -11,3 +11,4 @@ pub const NPORTS_TOTAL: usize = 16;
 pub const NPORTS_PER_STATION: usize = 8;
 pub const SMP_LEN: usize = 1024;
 pub const PKT_LEN: usize = std::mem::size_of::<crate::data_frame::DbfDataFrame>();
+pub const WGT_PATH:&str="/ata0:0/config/";
