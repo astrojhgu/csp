@@ -1,3 +1,4 @@
+#![feature(atomic_bool_fetch_not)]
 use clap::Parser;
 
 use serde::{Deserialize, Serialize};
@@ -11,7 +12,7 @@ use csp::{
 };
 
 use std::{
-    collections::HashMap, fs::OpenOptions, hash::RandomState, io::Write, net::{SocketAddr, SocketAddrV4, UdpSocket}
+    collections::HashMap, fs::OpenOptions, hash::RandomState, io::Write, net::{SocketAddr, SocketAddrV4, UdpSocket}, sync::atomic::{AtomicBool, Ordering}
 };
 
 use socket2::{Socket, Domain, Type};
@@ -77,6 +78,8 @@ fn main() {
     let (mut corr_queue, receiver): (Vec<_>, Vec<_>) =
         (0..n_stations).map(|_| CorrDataQueue::new()).unzip();
 
+    let running=std::sync::Arc::new(AtomicBool::new(true));
+    let running1=std::sync::Arc::clone(&running);
     std::thread::spawn(move || {
         let addr:std::net::SocketAddr="0.0.0.0:4001".parse().unwrap();
         let udp_socket=Socket::new(Domain::IPV4, Type::DGRAM, None).unwrap();
@@ -104,6 +107,11 @@ fn main() {
                     _=>{}
                 }
             };
+
+            
+            if !running1.load(Ordering::SeqCst){
+                break;
+            }
             
             //println!("src_addr:{}", src_addr);
             match src_addr {
@@ -213,6 +221,7 @@ fn main() {
         }
         idx += 1;
         if cfg.cnt>0 && idx>=cfg.cnt{
+            running.fetch_not(Ordering::SeqCst);
             break;
         }
     }

@@ -5,7 +5,7 @@ use std::io::Write;
 
 use byteorder::{ByteOrder, LittleEndian};
 
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam::channel::{bounded, Receiver, Sender};
 
 use crate::cfg::*;
 
@@ -147,7 +147,7 @@ pub struct CorrDataQueue {
 
 impl CorrDataQueue {
     pub fn new() -> (Self, Receiver<LinearOwnedReusable<CorrDataFrame>>) {
-        let (sender, receiver) = unbounded();
+        let (sender, receiver) = bounded(16);
         let pool = Arc::new(LinearObjectPool::new(
             || {
                 println!("initialized");
@@ -191,7 +191,7 @@ impl CorrDataQueue {
             match self.sender.send(result) {
                 Ok(_) => {}
                 Err(e) => {
-                    panic!("send error");
+                    panic!("send error {:?}", e);
                 }
             }
         }
