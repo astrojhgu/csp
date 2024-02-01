@@ -10,3 +10,4 @@ pub mod dbf_wgt;
 //pub mod cspch;
 pub mod cpu_correlator;
 pub mod utils;
+pub mod wgt;

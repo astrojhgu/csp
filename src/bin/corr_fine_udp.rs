@@ -26,6 +26,7 @@ struct Cfg{
     , pub n_fine_ch_eff: usize
     , pub tap: usize
     , pub k: f32
+    , pub cnt: usize
 }
 
 
@@ -40,6 +41,7 @@ struct Args {
         value_name = "cfg file",
     )]
     cfg_file: String,
+    
 }
 
 fn main() {
@@ -121,19 +123,29 @@ fn main() {
     //let mut channelized_data = vec![0_f32; channelizers[0].output_buf_len()];
     let mut correlator = Correlator::new(NCH_PER_STREAM * nfine_eff, NFRAME_PER_CORR / nfine_full);
     let mut corr_data = vec![0f32; NCH_PER_STREAM * nfine_eff * 2];
-    //let mut idx = 0;
+    let mut idx = 0;
     loop {
         let mut corr_id_list = Vec::new();
         let mut max_corr_id = 0;
         receiver
             .iter()
-            .zip(channelizers.iter_mut())
-            .for_each(|(r, channelizer1)| {
+            .zip(channelizers.iter_mut()).enumerate()
+            .for_each(|(i, (r, channelizer1))| {
                 let x = r.recv().unwrap();
                 println!("{} {}", x.corr_id, receiver.len());
                 corr_id_list.push(x.corr_id);
                 max_corr_id = max_corr_id.max(x.corr_id);
                 //channelizer1.channelize(&x.payload, &mut channelized_data);
+                /*
+                let fname=format!("dump_{}.dat", i);
+                let mut dump = OpenOptions::new()
+                        .append(true)
+                        .create(true)
+                        .write(true)
+                        .open(&fname)
+                        .unwrap();
+                write_data(&mut dump, &x.payload);
+                */
                 channelizer1.channelize_no_out(&x.payload);
                 //let fname = format!("{}_{}.dat", args.out_prefix, dn);
                 //let mut outfile = std::fs::File::create(fname).unwrap();
@@ -199,7 +211,10 @@ fn main() {
                 }
             }
         }
-        //idx += 1;
+        idx += 1;
+        if cfg.cnt>0 && idx>=cfg.cnt{
+            break;
+        }
     }
 
     //println!("finished");

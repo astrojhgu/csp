@@ -36,7 +36,7 @@ pub enum MsgContent {
     #[bw(magic = 0x1009u16)]
     #[br(magic = 0x1009u16)]
     BitCut {
-        board_id: u32,
+        fft_cut: u32,
         filter_cut: u32,
         dbf_cut: u32,
     },
