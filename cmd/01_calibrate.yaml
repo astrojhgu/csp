@@ -1,0 +1,16 @@
+- !SelfTest  #自检
+  magic:
+  - 1
+  - 0
+  - 0x12c
+  - 0x12e
+  - 0x140
+  action: 0
+- !SelfTest  #应用
+  magic:
+  - 1
+  - 0
+  - 0x12c
+  - 0x12e
+  - 0x140
+  action: 1

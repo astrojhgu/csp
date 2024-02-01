@@ -1,0 +1,16 @@
+- !BeamCtrl #计算权重
+  beam_id:
+  - 6
+  - 1
+  - 2
+  - 3
+  calc_wgt: 1
+  apply_wgt: 0
+- !BeamCtrl #应用权重
+  beam_id:
+  - 6
+  - 1
+  - 2
+  - 3
+  calc_wgt: 0
+  apply_wgt: 1
