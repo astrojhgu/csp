@@ -15,20 +15,20 @@ pub enum WgtFlags {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WgtCfg {
     pub delay: Vec<f64>,
-    pub gain: Vec<f64>,
+    pub ampl: Vec<f64>,
     pub flags: WgtFlags,
 }
 
 impl WgtCfg {
     pub fn calc(&self) -> Array2<Complex<f64>> {
         let delay = delay2wgt(&self.delay);
-        let gain = gain2wgt(&self.gain);
+        let ampl = ampl2wgt(&self.ampl);
         let flags = match self.flags {
             WgtFlags::Enable(ref x) => enable_ports(x),
             WgtFlags::Disable(ref x) => disable_ports(x),
             WgtFlags::None => unit_wgt(),
         };
-        let wgt = vec![delay, gain, flags];
+        let wgt = vec![delay, ampl, flags];
         merge_wgt(&wgt)
     }
 }
@@ -105,12 +105,12 @@ pub fn delay2wgt(delay_ns: &[f64]) -> Array2<Complex<f64>> {
     result
 }
 
-pub fn gain2wgt(gain: &[f64]) -> Array2<Complex<f64>> {
-    assert_eq!(gain.len(), NPORTS_PER_STATION);
+pub fn ampl2wgt(ampl: &[f64]) -> Array2<Complex<f64>> {
+    assert_eq!(ampl.len(), NPORTS_PER_STATION);
     let mut result = unit_wgt();
     result
         .axis_iter_mut(Axis(1))
-        .zip(gain.iter())
+        .zip(ampl.iter())
         .for_each(|(mut x, &g)| {
             assert!(g>=0.0 && g<=1.0);
             x.iter_mut().for_each(|x1| *x1 *= g);

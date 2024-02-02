@@ -154,7 +154,7 @@ impl CorrDataQueue {
                 CorrDataFrame::default()
             },
             |v| {
-                println!("reseted");
+                //println!("reseted");
                 v.corr_id = 0;
                 v.payload.fill(RawDataType::default());
             },
@@ -177,15 +177,16 @@ impl CorrDataQueue {
         if let Some(last_pkt_id) = self.last_pkt_id {
             if last_pkt_id + 1 != pkt.pkt_id as usize {
                 eprintln!(
-                    "dropped {} packets",
-                    pkt.pkt_id as i64 - last_pkt_id as i64 - 1
+                    "dropped {} packets {} {}",
+                    pkt.pkt_id as i64 - last_pkt_id as i64 - 1, pkt.pkt_id, last_pkt_id
                 );
             }
         }
         self.last_pkt_id = Some(pkt.pkt_id as usize);
-
+        let _offset = self.tmp_corr_data_frame.fill(pkt);
         let next_frame_id = (pkt_id + 1) / NPKT_PER_CORR;
         if next_frame_id != frame_id {
+            println!("swapped {} {}", frame_id, pkt.pkt_id);
             //println!("")
             let result = std::mem::replace(&mut self.tmp_corr_data_frame, self.pool.pull_owned());
             match self.sender.send(result) {
@@ -195,7 +196,7 @@ impl CorrDataQueue {
                 }
             }
         }
-        let _offset = self.tmp_corr_data_frame.fill(pkt);
+        
         //println!("{:?}", &self.tmp_corr_data_frame.payload[offset..offset+32]);
     }
 }

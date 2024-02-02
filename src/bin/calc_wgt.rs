@@ -1,7 +1,7 @@
 use clap::Parser;
-use csp::wgt::{WgtCfg, WgtFlags};
-use serde_yaml::{from_reader, to_writer};
-use std::fs::File;
+use csp::wgt::{WgtCfg, write_wgt};
+use serde_yaml::from_reader;
+use std::{fs::File, io::Write};
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -12,7 +12,7 @@ struct Args {
     cfg_file: String,
 
     #[clap(short('o'), long("out"), value_name = "output file")]
-    out_file: String,
+    out_file: Option<String>,
 }
 
 fn main() {
@@ -22,14 +22,12 @@ fn main() {
     println!("{:?}", wgt_cfg);
 
     let wgt=wgt_cfg.calc();
-    println!("{:?}", wgt);
-    /*
-    let wgt_cfg=WgtCfg{
-        delay: vec![0.0; 128],
-        gain: vec![0.0; 128], 
-        flags: WgtFlags::None
+    let mut outfile:Box<dyn Write>=
+    if let Some(ref fname)=args.out_file{
+        Box::new(File::create(fname).unwrap())
+    }else{
+        Box::new(std::io::stdout())
     };
-
-    to_writer(File::create("a.yaml").unwrap(), &wgt_cfg).unwrap();
-    */
+    
+    write_wgt(&mut outfile, wgt.view());
 }
