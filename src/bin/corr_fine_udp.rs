@@ -136,12 +136,7 @@ fn main() {
                         buf[*i][offset..offset + NCH_PER_STREAM * 2 * csp::cfg::NFRAME_PER_PKT]
                             .copy_from_slice(&data.payload);
 
-                        if next_corr_id == corr_id + 1 && corr_id>=0 && corr_id<4 {
-                            let mut outfile =
-                                File::create(format!("/dev/shm/d_{}_{}.dat", i, corr_id)).unwrap();
-                            write_data(&mut outfile, &buf[*i]);
-                            buf[*i].fill(0);
-                        }
+                        
                         corr_queue[*i].push(&data);
                     }
                     None => {
