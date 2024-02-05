@@ -26,7 +26,8 @@ use chrono::prelude::*;
 
 #[derive(Serialize, Deserialize)]
 struct Cfg {
-    pub src_ip: Vec<String>,
+    pub src_addr: Vec<String>,
+    pub dst_addr: String, 
     pub out_prefix: String,
     pub n_fine_ch_eff: usize,
     pub tap: usize,
@@ -48,7 +49,7 @@ fn main() {
     let cfg: Cfg = from_reader(std::fs::File::open(&args.cfg_file).unwrap()).unwrap();
 
     let src_addrs: HashMap<SocketAddrV4, usize, RandomState> = cfg
-        .src_ip
+        .src_addr
         .iter()
         .map(|s| s.parse::<SocketAddrV4>().unwrap())
         .enumerate()
@@ -66,7 +67,7 @@ fn main() {
     println!("{:?}", src_addrs);
     //std::process::exit(0);
 
-    println!("{:?}", cfg.src_ip);
+    println!("{:?}", cfg.src_addr);
 
     let nfine_eff = cfg.n_fine_ch_eff;
     let nfine_full = nfine_eff * 2;
@@ -85,7 +86,7 @@ fn main() {
     let running = std::sync::Arc::new(AtomicBool::new(true));
     let running1 = std::sync::Arc::clone(&running);
     std::thread::spawn(move || {
-        let addr: std::net::SocketAddr = "0.0.0.0:4001".parse().unwrap();
+        let addr: std::net::SocketAddr = cfg.dst_addr.parse().unwrap();
         let udp_socket = Socket::new(Domain::IPV4, Type::DGRAM, None).unwrap();
         udp_socket.bind(&addr.into()).unwrap();
         udp_socket.set_recv_buffer_size(100 * 1024 * 1024).unwrap();
@@ -107,9 +108,9 @@ fn main() {
                     0_i16;
                     NCH_PER_STREAM * 2 * csp::cfg::NFRAME_PER_PKT * csp::cfg::NPKT_PER_CORR
                 ];
-                2
+                n_stations
             ];
-
+        let mut old_pkt_id_list=vec![None; n_stations];
         loop {
             let (_, src_addr) = loop {
                 match udp_socket.recv_from(udp_buf) {
@@ -125,19 +126,27 @@ fn main() {
             //println!("src_addr:{}", src_addr);
             match src_addr {
                 SocketAddr::V4(s) => match src_addrs.get(&s) {
-                    Some(i) => {
+                    Some(&i) => {
                         let corr_id = data.pkt_id as usize / csp::cfg::NPKT_PER_CORR;
+
+                        if let Some(old_pkt_id)=old_pkt_id_list[i]{
+                            if old_pkt_id+1!=data.pkt_id{
+                                println!("{}: {} pkts dropped {}->{}", s, data.pkt_id-old_pkt_id-1, old_pkt_id, data.pkt_id);
+                            }
+                        }
+
+                        old_pkt_id_list[i]=Some(data.pkt_id );
                         let next_corr_id = (data.pkt_id + 1) as usize / NPKT_PER_CORR;
                         let offset = (data.pkt_id as usize - corr_id * csp::cfg::NPKT_PER_CORR)
                             * NCH_PER_STREAM
                             * 2
                             * csp::cfg::NFRAME_PER_PKT;
 
-                        buf[*i][offset..offset + NCH_PER_STREAM * 2 * csp::cfg::NFRAME_PER_PKT]
+                        buf[i][offset..offset + NCH_PER_STREAM * 2 * csp::cfg::NFRAME_PER_PKT]
                             .copy_from_slice(&data.payload);
 
                         
-                        corr_queue[*i].push(&data);
+                        corr_queue[i].push(&data);
                     }
                     None => {
                         panic!("unregistered station addr");
