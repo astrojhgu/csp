@@ -99,7 +99,8 @@ pub fn delay2wgt(delay_ns: &[f64]) -> Array2<Complex<f64>> {
     for (ic, mut w_ch) in result.axis_iter_mut(Axis(0)).enumerate() {
         let freq = ic as f64 / NCH_TOTAL as f64 * MAX_FREQ as f64;
         for (&d_ns, w) in delay_ns.iter().zip(w_ch.iter_mut()) {
-            *w *= Complex::new(0.0, 2.0 * std::f64::consts::PI * d_ns * 1e-9 * freq).exp()
+            //apply a digital delay means the the delayed signal should has a smaller phase value
+            *w *= Complex::new(0.0, -2.0 * std::f64::consts::PI * d_ns * 1e-9 * freq).exp()
         }
     }
     result

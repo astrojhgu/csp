@@ -26,7 +26,8 @@ use chrono::prelude::*;
 
 #[derive(Serialize, Deserialize)]
 struct Cfg {
-    pub src_ip: Vec<String>,
+    pub src_addr: Vec<String>,
+    pub dst_addr: String, 
     pub out_prefix: String,
     pub n_fine_ch_eff: usize,
     pub tap: usize,
@@ -50,7 +51,7 @@ fn main() {
     let cfg: Cfg = from_reader(std::fs::File::open(&args.cfg_file).unwrap()).unwrap();
 
     let src_addrs: HashMap<SocketAddrV4, usize, RandomState> = cfg
-        .src_ip
+        .src_addr
         .iter()
         .map(|s| s.parse::<SocketAddrV4>().unwrap())
         .enumerate()
@@ -68,10 +69,10 @@ fn main() {
     println!("{:?}", src_addrs);
     //std::process::exit(0);
 
-    println!("{:?}", cfg.src_ip);
+    println!("{:?}", cfg.src_addr);
 
     
-    let addr: std::net::SocketAddr = "0.0.0.0:4001".parse().unwrap();
+    let addr: std::net::SocketAddr = cfg.dst_addr.parse().unwrap();
     let udp_socket = Socket::new(Domain::IPV4, Type::DGRAM, None).unwrap();
     udp_socket.bind(&addr.into()).unwrap();
     udp_socket.set_recv_buffer_size(100 * 1024 * 1024).unwrap();
@@ -108,8 +109,6 @@ fn main() {
                 _ => {}
             }
         };
-
-
 
         //println!("src_addr:{}", src_addr);
         match src_addr {
