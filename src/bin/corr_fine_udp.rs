@@ -149,7 +149,7 @@ fn main() {
                         corr_queue[i].push(&data);
                     }
                     None => {
-                        panic!("unregistered station addr");
+                        //panic!("unregistered station addr");
                     }
                 },
                 SocketAddr::V6(_s) => continue,
