@@ -46,7 +46,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let cfg: Cfg = from_reader(std::fs::File::open(&args.cfg_file).unwrap()).unwrap();
+    let cfg: Cfg = from_reader(std::fs::File::open(args.cfg_file).unwrap()).unwrap();
 
     let src_addrs: HashMap<SocketAddrV4, usize, RandomState> = cfg
         .src_addr
@@ -60,7 +60,7 @@ fn main() {
     let mut dump_files: Vec<_> = (0..n_stations)
         .map(|i| {
             let fname = format!("dump_{}.dat", i);
-            File::create(&fname).unwrap()
+            File::create(fname).unwrap()
         })
         .collect();
 
@@ -136,7 +136,7 @@ fn main() {
                         }
 
                         old_pkt_id_list[i]=Some(data.pkt_id );
-                        let next_corr_id = (data.pkt_id + 1) as usize / NPKT_PER_CORR;
+                        let _next_corr_id = (data.pkt_id + 1) as usize / NPKT_PER_CORR;
                         let offset = (data.pkt_id as usize - corr_id * csp::cfg::NPKT_PER_CORR)
                             * NCH_PER_STREAM
                             * 2
@@ -182,7 +182,6 @@ fn main() {
                 let mut dump = OpenOptions::new()
                         .append(true)
                         .create(true)
-                        .write(true)
                         .open(&fname)
                         .unwrap();
                 write_data(&mut dump, &x.payload);
@@ -233,7 +232,6 @@ fn main() {
         let mut time_file = OpenOptions::new()
             .append(true)
             .create(true)
-            .write(true)
             .open(&time_filename)
             .unwrap();
 
@@ -243,7 +241,6 @@ fn main() {
         let mut time_file = OpenOptions::new()
             .append(true)
             .create(true)
-            .write(true)
             .open(&time_filename)
             .unwrap();
 
@@ -258,7 +255,6 @@ fn main() {
                     let mut outfile = OpenOptions::new()
                         .append(true)
                         .create(true)
-                        .write(true)
                         .open(&fname)
                         .unwrap();
                     //let mut outfile = std::fs::File::create(fname).unwrap();

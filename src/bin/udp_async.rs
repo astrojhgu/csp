@@ -22,14 +22,14 @@ fn main() -> Result<()> {
     let (corr_queue, receiver): (Vec<_>, Vec<_>) = (0..ndevs).map(|_| CorrDataQueue::new()).unzip();
     let corr_queue = corr_queue
         .into_iter()
-        .map(|x| RefCell::new(x))
+        .map(RefCell::new)
         .collect::<Vec<_>>();
     let nfine_eff = 16;
     let nfine_full = nfine_eff * 2;
     let coeffs = calc_coeff(nfine_full, 32, 0.95);
     let out_prefix = "test";
 
-    let t = std::thread::spawn(move || {
+    let _t = std::thread::spawn(move || {
         {
             let mut channelizers = (0..ndevs)
                 .map(|_| CspChannelizer::new(NFRAME_PER_CORR, NCH_PER_STREAM, nfine_full, &coeffs))
@@ -37,7 +37,7 @@ fn main() -> Result<()> {
             let mut correlator =
                 Correlator::new(NCH_PER_STREAM * nfine_eff, NFRAME_PER_CORR / nfine_full);
             let mut corr_data = vec![0f32; NCH_PER_STREAM * nfine_eff * 2];
-            let mut idx = 0;
+            //let mut idx = 0;
             let mut corr_id_list = Vec::new();
             let mut max_corr_id = 0;
             receiver
@@ -77,8 +77,8 @@ fn main() -> Result<()> {
             let mut time_file = OpenOptions::new()
                 .append(true)
                 .create(true)
-                .write(true)
-                .open(&time_filename)
+                //.write(true)
+                .open(time_filename)
                 .unwrap();
 
             writeln!(&mut time_file, "{}", time_i64).unwrap();
@@ -87,8 +87,7 @@ fn main() -> Result<()> {
             let mut time_file = OpenOptions::new()
                 .append(true)
                 .create(true)
-                .write(true)
-                .open(&time_filename)
+                .open(time_filename)
                 .unwrap();
 
             let b = time_i64.to_le_bytes();
@@ -102,7 +101,6 @@ fn main() -> Result<()> {
                         let mut outfile = OpenOptions::new()
                             .append(true)
                             .create(true)
-                            .write(true)
                             .open(&fname)
                             .unwrap();
                         //let mut outfile = std::fs::File::create(fname).unwrap();
@@ -110,22 +108,22 @@ fn main() -> Result<()> {
                     }
                 }
             }
-            idx += 1;
+            //idx += 1;
         }
     });
 
     let rt = Runtime::new()?;
 
     rt.block_on(async {
-        let sockets = join_all(addresses.into_iter().map(|x| UdpSocket::bind(x)))
+        let sockets = join_all(addresses.into_iter().map(UdpSocket::bind))
             .await
             .into_iter()
             .map(|x| x.unwrap())
             .collect::<Vec<_>>();
 
-        let mut last_pkt_id = 0;
+        //let mut last_pkt_id = 0;
 
-        let mut capturers = sockets
+        let capturers = sockets
             .iter()
             .zip(corr_queue.iter())
             .map(|(s, q)| {
@@ -137,7 +135,7 @@ fn main() -> Result<()> {
                             8080,
                         )
                     };
-                    let (size, addr) = s.recv_from(buf).await.unwrap();
+                    let (_size, _addr) = s.recv_from(buf).await.unwrap();
                     //println!("{}", data.pkt_id);
                     q.borrow_mut().push(&data);
                     //println!("{} {}", addr, data.pkt_id);

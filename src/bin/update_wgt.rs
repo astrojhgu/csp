@@ -21,8 +21,8 @@ struct Args {
 fn main(){
     let args=Args::parse();
     let addr=format!("{}:21", args.addr);
-    let mut ftp_stream=FtpStream::connect(&addr).unwrap();
-    let _ = ftp_stream.login("", "").unwrap();
+    let mut ftp_stream=FtpStream::connect(addr).unwrap();
+    ftp_stream.login("", "").unwrap();
     
     
     let beam_id=if args.beam_id==0{

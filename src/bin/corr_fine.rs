@@ -72,7 +72,7 @@ fn main() {
 
     let _recv_threads: Vec<_> = dev_name
         .iter()
-        .zip(corr_queue.into_iter())
+        .zip(corr_queue)
         .map(|(dvn, mut sender)| {
             let device = pcap::Device::list()
                 .unwrap()
@@ -128,7 +128,7 @@ fn main() {
         })
         .collect();
 
-    let mut channelized_data = vec![0_f32; channelizers[0].output_buf_len()];
+    let _channelized_data = vec![0_f32; channelizers[0].output_buf_len()];
     let mut correlator = Correlator::new(NCH_PER_STREAM * nfine_eff, NFRAME_PER_CORR / nfine_full);
     let mut corr_data = vec![0f32; NCH_PER_STREAM * nfine_eff * 2];
     let mut idx = 0;
@@ -176,7 +176,6 @@ fn main() {
         let mut time_file = OpenOptions::new()
             .append(true)
             .create(true)
-            .write(true)
             .open(&time_filename)
             .unwrap();
 
@@ -186,7 +185,6 @@ fn main() {
         let mut time_file = OpenOptions::new()
             .append(true)
             .create(true)
-            .write(true)
             .open(&time_filename)
             .unwrap();
 
@@ -201,7 +199,6 @@ fn main() {
                     let mut outfile = OpenOptions::new()
                         .append(true)
                         .create(true)
-                        .write(true)
                         .open(&fname)
                         .unwrap();
                     //let mut outfile = std::fs::File::create(fname).unwrap();

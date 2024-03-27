@@ -42,7 +42,7 @@ pub fn write_wgt(writer: &mut dyn Write, data: ArrayView2<Complex<f64>>) {
         assert!(x.im.abs() <= 1.0);
         let data1 = [(32767.0*x.re).round() as i16, (32767.0*x.im).round() as i16];
         writer
-            .write(unsafe { std::slice::from_raw_parts(data1.as_ptr() as *const u8, 4) })
+            .write_all(unsafe { std::slice::from_raw_parts(data1.as_ptr() as *const u8, 4) })
             .unwrap();
     })
 }
@@ -56,7 +56,7 @@ pub fn read_wgt(reader: &mut dyn Read) -> Array2<Complex<f64>> {
                 NCH_TOTAL * NPORTS_PER_STATION * 2 * 2,
             )
         };
-        reader.read(buf).unwrap();
+        reader.read_exact(buf).unwrap();
     }
     data.map(|x| Complex::new(x.re as f64/32767.0, x.im as f64/32767.0))
 }
@@ -113,7 +113,7 @@ pub fn ampl2wgt(ampl: &[f64]) -> Array2<Complex<f64>> {
         .axis_iter_mut(Axis(1))
         .zip(ampl.iter())
         .for_each(|(mut x, &g)| {
-            assert!(g>=0.0 && g<=1.0);
+            assert!((0.0..=1.0).contains(&g));
             x.iter_mut().for_each(|x1| *x1 *= g);
         });
     result

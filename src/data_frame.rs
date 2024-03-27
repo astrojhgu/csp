@@ -1,5 +1,5 @@
 use lockfree_object_pool::{LinearObjectPool, LinearOwnedReusable};
-use std::{default::Default, sync::Arc};
+use std::sync::Arc;
 
 use std::io::Write;
 

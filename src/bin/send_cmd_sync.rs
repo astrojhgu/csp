@@ -48,14 +48,13 @@ pub fn main() {
         socket.set_broadcast(true).expect("broadcast set failed");
         socket.set_nonblocking(false).expect("nonblocking set failed");
 
-        let msg = CtrlMsg::new(msg_content.clone(), i as u16 + 1);
+        let msg = CtrlMsg::new(msg_content, i as u16 + 1);
         //msg.show_bytes();
         let mut buf = Cursor::new(Vec::new());
         msg.write(&mut buf).expect("msg write failed");
         let buf = buf.into_inner();
 
         let mut log_file = OpenOptions::new()
-            .write(true)
             .append(true)
             .create(true)
             .open("sent_bytes.txt")
@@ -90,7 +89,7 @@ pub fn main() {
         }
 
         if i != nmsgs - 1 {
-            std::thread::sleep(Duration::from_secs_f64(args.t.unwrap_or_else(|| 1.0)));
+            std::thread::sleep(Duration::from_secs_f64(args.t.unwrap_or(1.0)));
         }
     }
 }

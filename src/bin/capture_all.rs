@@ -6,23 +6,19 @@ use serde_yaml::from_reader;
 
 use csp::{
     cfg::{NCH_PER_STREAM, PKT_LEN},
-    cspch::{calc_coeff, Correlator, CspChannelizer},
-    data_frame::{CorrDataQueue, DbfDataFrame},
+    data_frame::DbfDataFrame,
     utils::write_data,
 };
 
 use std::{
     collections::HashMap,
-    fs::{File, OpenOptions},
+    fs::File,
     hash::RandomState,
-    io::Write,
     net::{SocketAddr, SocketAddrV4, UdpSocket},
-    sync::atomic::{AtomicBool, Ordering},
 };
 
 use socket2::{Domain, Socket, Type};
 
-use chrono::prelude::*;
 
 #[derive(Serialize, Deserialize)]
 struct Cfg {
@@ -44,11 +40,11 @@ struct Args {
     cfg_file: String,
 }
 
-const NPKT_PER_CORR: usize = (1 << 18);
+const NPKT_PER_CORR: usize = 1 << 18;
 
 fn main() {
     let args = Args::parse();
-    let cfg: Cfg = from_reader(std::fs::File::open(&args.cfg_file).unwrap()).unwrap();
+    let cfg: Cfg = from_reader(std::fs::File::open(args.cfg_file).unwrap()).unwrap();
 
     let src_addrs: HashMap<SocketAddrV4, usize, RandomState> = cfg
         .src_addr
@@ -59,13 +55,13 @@ fn main() {
         .collect();
     let n_stations = src_addrs.len();
 
-    let mut dump_files: Vec<_> = (0..n_stations)
+    /*let mut dump_files: Vec<_> = (0..n_stations)
         .map(|i| {
             let fname = format!("dump_{}.dat", i);
             File::create(&fname).unwrap()
         })
         .collect();
-
+    */
     println!("{:?}", src_addrs);
     //std::process::exit(0);
 

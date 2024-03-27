@@ -1,4 +1,3 @@
-use core_affinity::{set_for_current, CoreId};
 use std::net::UdpSocket;
 
 use csp::data_frame::DbfDataFrame;
@@ -23,9 +22,9 @@ fn main() {
             let buf = unsafe {
                 std::slice::from_raw_parts_mut((&mut data) as *mut DbfDataFrame as *mut u8, 8080)
             };
-            let mut n = 0;
+            let mut n;
 
-            let (amt, src) = loop {
+            let (_amt, _src) = loop {
                 if let Ok((amt, src)) = socket.recv_from(buf) {
                     break (amt, src);
                 }

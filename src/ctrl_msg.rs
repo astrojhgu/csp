@@ -114,11 +114,7 @@ impl MsgContent {
             BeamCtrl { .. } => {
                 reply_msg["msg_type"].as_str().expect("failed to parse") == "BeamCtrl"
             } //
-            MultiCtrl { .. } => match reply_msg["msg_type"].as_str().expect("failed to parse") {
-                "MultiCtrl" => true,
-                "IPAddr" => true,
-                _ => false,
-            },
+            MultiCtrl { .. } => matches!(reply_msg["msg_type"].as_str().expect("failed to parse"), "MultiCtrl" | "IPAddr"),
             AttSet { .. } => reply_msg["msg_type"].as_str().expect("failed to parse") == "AttSet", //
         }
     }
@@ -302,7 +298,7 @@ impl CtrlMsg {
         payload
             .iter()
             .copied()
-            .chain([0_u8; 3].into_iter())
+            .chain([0_u8; 3])
             .for_each(|x| buf.get_mut().push(x));
 
         for x in buf.into_inner().into_iter().skip(4) {
