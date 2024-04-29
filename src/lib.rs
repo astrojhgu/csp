@@ -11,4 +11,5 @@ pub mod reply_msg;
 pub mod cpu_correlator;
 pub mod utils;
 pub mod wgt;
+pub mod att;
 pub mod addr_cfg;
