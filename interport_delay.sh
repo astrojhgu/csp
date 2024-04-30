@@ -5,7 +5,7 @@ CTRL_IP=192.168.4.10
 PAYLOAD_IP1=192.168.1.32
 PAYLOAD_IP2=192.168.1.42
 
-mkdir -p port_matching
+mkdir -p interport_delay
 
 function test_one_port {
     port=$1
@@ -14,18 +14,18 @@ function test_one_port {
        echo "port should >=0 && <=127"
        exit 
     fi
-    self_att=$2
+    
     others_att=$3
     out_prefix=$4
-    enable_port tmp_wgt_cfg.yaml $port 
-    ./update_wgt.sh tmp_wgt_cfg.yaml tmp_wgt_cfg.yaml $CTRL_IP
-    
-    write_att_cfg $port $self_att $others_att tmp_att.yaml
-    ./update_att.sh tmp_att.yaml $CTRL_IP
+    enable_port tmp_wgt_cfg1.yaml 127 
+    enable_port tmp_wgt_cfg2.yaml $port 
+
+    ./update_wgt.sh tmp_wgt_cfg1.yaml tmp_wgt_cfg2.yaml $CTRL_IP
 
     write_corr_cfg tmp_corr_cfg.yaml ${PAYLOAD_IP1} ${PAYLOAD_IP2} $out_prefix
 
     cargo run --bin send_cmd_sync --release -- --addr 192.168.4.255:2222 --port 2221 --cmd cmd/stop.yaml
+    cargo run --bin send_cmd_sync --release -- --addr 192.168.4.255:2222 --port 2221 --cmd cmd/sync.yaml
 
     cargo run --bin corr_fine_udp --release -- --cfg ./tmp_corr_cfg.yaml
 }
@@ -47,14 +47,22 @@ else
 fi
 
 echo $port1 $port2 
+
+all_off_att_cfg tmp_att.yaml
+./update_att.sh tmp_att.yaml $CTRL_IP
+
 for port in `seq ${port1} ${port2}`
 do
+    rm -rf ./interport_delay/on_${port}*
+    rm -rf ./interport_delay/off_${port}*
 
-    rm -rf ./port_matching/on_${port}*
-    rm -rf ./port_matching/off_${port}*
-    test_one_port $port 0 30 ./port_matching/on_${port} || exit
-    test_one_port $port 30 0 ./port_matching/off_${port} || exit
+    all_off_att_cfg tmp_att.yaml
+    ./update_att.sh tmp_att.yaml $CTRL_IP
+    test_one_port $port 0 30 ./interport_delay/off_${port} || exit
 
-    ./plot_port_matching.py ${port} || exit
+    all_pass_att_cfg tmp_att.yaml
+    ./update_att.sh tmp_att.yaml $CTRL_IP
+    test_one_port $port 0 30 ./interport_delay/on_${port} || exit
 
+    ./plot_interport_delay.py ${port} || exit
 done

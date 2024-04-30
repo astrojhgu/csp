@@ -60,6 +60,27 @@ function write_att_cfg {
     done
 }
 
+function all_pass_att_cfg {
+    outfile=$1
+    echo value: >$outfile
+    for i in `seq 0 127`
+    do
+        
+        echo "    - 0" >>$outfile
+    done
+}
+
+function all_off_att_cfg {
+    outfile=$1
+    echo value: >$outfile
+    for i in `seq 0 127`
+    do
+        
+        echo "    - 31" >>$outfile
+    done
+}
+
+
 function write_corr_cfg {
     outfile=$1
     ip1=$2
