@@ -152,7 +152,7 @@ fn main() {
                     }
                 }
                 None => {
-                    panic!("unregistered station addr");
+                    //panic!("unregistered station addr");
                 }
             },
             SocketAddr::V6(_s) => continue,
