@@ -1,10 +1,6 @@
-use crate::cfg::{MAX_FREQ, NCH_TOTAL, NPORTS_PER_STATION};
-use futures::stream::AbortRegistration;
-use ndarray::{s, Array2, ArrayView2, Axis};
-use num_complex::Complex;
-use num_traits::Zero;
+use crate::cfg::NPORTS_PER_STATION;
 use serde::{Deserialize, Serialize};
-use std::io::{Read, Write};
+use std::io::Write;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AttCfg {

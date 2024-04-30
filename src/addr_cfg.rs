@@ -19,7 +19,7 @@ impl AddrCfg{
     pub fn to_raw(&self)->Vec<u8>{
         let mut result=vec![0_u8; 160];
 
-        let mut raw_data=unsafe{std::slice::from_raw_parts_mut(result.as_mut_ptr() as *mut u16, 80)};
+        let raw_data=unsafe{std::slice::from_raw_parts_mut(result.as_mut_ptr() as *mut u16, 80)};
 
         for (i, a) in self.beam1.iter().enumerate(){
             for j in 0..4{

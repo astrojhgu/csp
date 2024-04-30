@@ -1,4 +1,4 @@
-use std::{io::Read, fs::File};
+use std::{fs::File};
 use clap::Parser;
 use csp::att::AttCfg;
 use suppaftp::FtpStream;

@@ -1,6 +1,6 @@
-use csp::addr_cfg::{AddrCfg, FiberAddrPair};
+use csp::addr_cfg::AddrCfg;
 use serde_yaml::to_writer;
-use std::{fs::File, io::{Read, Write}, ops::Add};
+use std::{fs::File, io::Read};
 
 fn main() {
     let mut raw_data=vec![0; 160];
