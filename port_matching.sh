@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 source utils.sh
 
-CTRL_IP=192.168.4.10
+CTRL_IP=192.168.4.11
 PAYLOAD_IP1=192.168.1.32
-PAYLOAD_IP2=192.168.1.42
+PAYLOAD_IP2=192.168.1.40
 
 mkdir -p port_matching
 

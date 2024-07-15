@@ -27,7 +27,7 @@ use chrono::prelude::*;
 #[derive(Serialize, Deserialize)]
 struct Cfg {
     pub src_addr: Vec<String>,
-    pub dst_addr: String, 
+    pub dst_addr: String,
     pub out_prefix: String,
     pub n_fine_ch_eff: usize,
     pub tap: usize,
@@ -110,7 +110,9 @@ fn main() {
                 ];
                 n_stations
             ];
-        let mut old_pkt_id_list=vec![None; n_stations];
+        let mut old_pkt_id_list = vec![None; n_stations];
+        let mut unregisted_src = std::collections::HashSet::new();
+
         loop {
             let (_, src_addr) = loop {
                 match udp_socket.recv_from(udp_buf) {
@@ -129,13 +131,19 @@ fn main() {
                     Some(&i) => {
                         let corr_id = data.pkt_id as usize / csp::cfg::NPKT_PER_CORR;
 
-                        if let Some(old_pkt_id)=old_pkt_id_list[i]{
-                            if old_pkt_id+1!=data.pkt_id{
-                                println!("{}: {} pkts dropped {}->{}", s, data.pkt_id-old_pkt_id-1, old_pkt_id, data.pkt_id);
+                        if let Some(old_pkt_id) = old_pkt_id_list[i] {
+                            if old_pkt_id + 1 != data.pkt_id {
+                                println!(
+                                    "{}: {} pkts dropped {}->{}",
+                                    s,
+                                    data.pkt_id - old_pkt_id - 1,
+                                    old_pkt_id,
+                                    data.pkt_id
+                                );
                             }
                         }
 
-                        old_pkt_id_list[i]=Some(data.pkt_id );
+                        old_pkt_id_list[i] = Some(data.pkt_id);
                         let _next_corr_id = (data.pkt_id + 1) as usize / NPKT_PER_CORR;
                         let offset = (data.pkt_id as usize - corr_id * csp::cfg::NPKT_PER_CORR)
                             * NCH_PER_STREAM
@@ -145,10 +153,14 @@ fn main() {
                         buf[i][offset..offset + NCH_PER_STREAM * 2 * csp::cfg::NFRAME_PER_PKT]
                             .copy_from_slice(&data.payload);
 
-                        
                         corr_queue[i].push(&data);
                     }
                     None => {
+                        if !unregisted_src.contains(&src_addr) {
+                            unregisted_src.insert(src_addr);
+                            println!("unregisted ip: {:?}", src_addr);
+                        }
+                        //println!("{:?}", src_addr);
                         //panic!("unregistered station addr");
                     }
                 },

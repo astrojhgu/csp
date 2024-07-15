@@ -23,7 +23,7 @@ for prefix in [f"port_matching/{i}_{port}" for i in ["on","off"]]:
 
 plt.title(f"Port {port}")
 plt.legend()
-plt.ylim(50,120)
+plt.ylim(10,120)
 plt.savefig(f"port_matching/fig_{port}.png")
 plt.show(block=False)
 plt.pause(3)
