@@ -87,27 +87,29 @@ impl DbfDataFrame {
 
 pub struct CorrDataFrame {
     pub corr_id: usize,
+    pub nsteps: usize, 
     pub payload: Vec<RawDataType>,
 }
 
-impl Default for CorrDataFrame {
-    fn default() -> Self {
+
+impl CorrDataFrame {
+    pub fn new(nsteps: usize)->Self{
         Self {
             corr_id: 0,
+            nsteps,
             payload: vec![
                 RawDataType::default();
-                NCH_PER_STREAM * 2 * NFRAME_PER_PKT * NPKT_PER_CORR
+                NCH_PER_STREAM * 2 * nsteps
             ],
         }
     }
-}
 
-impl CorrDataFrame {
     pub fn fill(&mut self, pkt: &DbfDataFrame) -> usize {
+        let npkt_per_corr=self.nsteps/NFRAME_PER_PKT;
         let pkt_id = pkt.pkt_id;
-        let corr_id = pkt_id as usize / NPKT_PER_CORR;
+        let corr_id = pkt_id as usize / npkt_per_corr;
         let offset =
-            (pkt_id as usize - corr_id * NPKT_PER_CORR) * NCH_PER_STREAM * 2 * NFRAME_PER_PKT;
+            (pkt_id as usize - corr_id * npkt_per_corr) * NCH_PER_STREAM * 2 * NFRAME_PER_PKT;
         self.payload[offset..offset + NCH_PER_STREAM * 2 * NFRAME_PER_PKT]
             .copy_from_slice(&pkt.payload);
         self.corr_id = corr_id;
@@ -124,13 +126,14 @@ impl CorrDataFrame {
     where
         W: Write,
     {
+        let npkt_per_corr=self.nsteps/NFRAME_PER_PKT;
         let data = unsafe {
             std::slice::from_raw_parts(
                 self.payload.as_ptr() as *const u8,
                 NCH_PER_STREAM//100
                     * 2 //re and im
                     * NFRAME_PER_PKT //20
-                    * NPKT_PER_CORR  //integration time
+                    * npkt_per_corr  //integration time
                     * std::mem::size_of::<RawDataType>(),
             )
         };
@@ -139,6 +142,7 @@ impl CorrDataFrame {
 }
 
 pub struct CorrDataQueue {
+    pub nsteps: usize, 
     pub last_pkt_id: Option<usize>,
     pub pool: Arc<LinearObjectPool<CorrDataFrame>>,
     pub tmp_corr_data_frame: LinearOwnedReusable<CorrDataFrame>,
@@ -146,12 +150,12 @@ pub struct CorrDataQueue {
 }
 
 impl CorrDataQueue {
-    pub fn new() -> (Self, Receiver<LinearOwnedReusable<CorrDataFrame>>) {
+    pub fn new(nsteps: usize) -> (Self, Receiver<LinearOwnedReusable<CorrDataFrame>>) {
         let (sender, receiver) = bounded(16);
         let pool = Arc::new(LinearObjectPool::new(
-            || {
+            move || {
                 println!("initialized");
-                CorrDataFrame::default()
+                CorrDataFrame::new(nsteps)
             },
             |v| {
                 //println!("reseted");
@@ -162,6 +166,7 @@ impl CorrDataQueue {
         let tmp_corr_data_frame = pool.pull_owned();
         //let tmp=pool.pull(||CorrDataFrame::default());
         let result = Self {
+            nsteps,
             last_pkt_id: None,
             pool,
             tmp_corr_data_frame,
@@ -171,8 +176,9 @@ impl CorrDataQueue {
     }
 
     pub fn push(&mut self, pkt: &DbfDataFrame) {
+        let npkt_per_corr=self.nsteps/NFRAME_PER_PKT;
         let pkt_id = pkt.pkt_id as usize;
-        let frame_id = pkt_id / NPKT_PER_CORR;
+        let frame_id = pkt_id / npkt_per_corr;
         //println!("{}", frame_id);
         if let Some(last_pkt_id) = self.last_pkt_id {
             if last_pkt_id + 1 != pkt.pkt_id as usize {
@@ -184,7 +190,7 @@ impl CorrDataQueue {
         }
         self.last_pkt_id = Some(pkt.pkt_id as usize);
         let _offset = self.tmp_corr_data_frame.fill(pkt);
-        let next_frame_id = (pkt_id + 1) / NPKT_PER_CORR;
+        let next_frame_id = (pkt_id + 1) / npkt_per_corr;
         if next_frame_id != frame_id {
             println!("swapped {} {}", frame_id, pkt.pkt_id);
             //println!("")

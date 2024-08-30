@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_yaml::from_reader;
 
 use csp::{
-    cfg::{NCH_PER_STREAM, NFRAME_PER_CORR, NPKT_PER_CORR, PKT_LEN},
+    cfg::{NCH_PER_STREAM, NFRAME_PER_PKT, PKT_LEN},
     cspch::{calc_coeff, Correlator, CspChannelizer},
     data_frame::{CorrDataQueue, DbfDataFrame},
     utils::write_data,
@@ -16,7 +16,7 @@ use std::{
     fs::{File, OpenOptions},
     hash::RandomState,
     io::Write,
-    net::{SocketAddr, SocketAddrV4, UdpSocket},
+    net::{SocketAddr, ToSocketAddrs, UdpSocket},
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -33,6 +33,7 @@ struct Cfg {
     pub tap: usize,
     pub k: f32,
     pub cnt: usize,
+    pub nframe_per_corr: usize,
 }
 
 /// Simple program to greet a person
@@ -47,11 +48,13 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let cfg: Cfg = from_reader(std::fs::File::open(args.cfg_file).unwrap()).unwrap();
+    
 
-    let src_addrs: HashMap<SocketAddrV4, usize, RandomState> = cfg
+    let src_addrs: HashMap<SocketAddr, usize, RandomState> = cfg
         .src_addr
         .iter()
-        .map(|s| s.parse::<SocketAddrV4>().unwrap())
+        //.map(|s| s.parse::<SocketAddrV4>().unwrap())
+        .map(|s| s.to_socket_addrs().unwrap().next().unwrap())
         .enumerate()
         .map(|(a, b)| (b, a))
         .collect();
@@ -72,16 +75,19 @@ fn main() {
     let nfine_eff = cfg.n_fine_ch_eff;
     let nfine_full = nfine_eff * 2;
 
+    assert_eq!(cfg.nframe_per_corr % nfine_full, 0);
+    let npkt_per_corr=cfg.nframe_per_corr/NFRAME_PER_PKT;
+
     let coeffs = calc_coeff(nfine_full, cfg.tap, cfg.k);
     let mut channelizers = src_addrs
         .iter()
-        .map(|_| CspChannelizer::new(NFRAME_PER_CORR, NCH_PER_STREAM, nfine_full, &coeffs))
+        .map(|_| CspChannelizer::new(cfg.nframe_per_corr, NCH_PER_STREAM, nfine_full,&coeffs))
         .collect::<Vec<_>>();
 
     let out_prefix = cfg.out_prefix;
 
     let (mut corr_queue, receiver): (Vec<_>, Vec<_>) =
-        (0..n_stations).map(|_| CorrDataQueue::new()).unzip();
+        (0..n_stations).map(|_| CorrDataQueue::new(cfg.nframe_per_corr)).unzip();
 
     let running = std::sync::Arc::new(AtomicBool::new(true));
     let running1 = std::sync::Arc::clone(&running);
@@ -106,7 +112,7 @@ fn main() {
             vec![
                 vec![
                     0_i16;
-                    NCH_PER_STREAM * 2 * csp::cfg::NFRAME_PER_PKT * csp::cfg::NPKT_PER_CORR
+                    NCH_PER_STREAM * 2 * cfg.nframe_per_corr
                 ];
                 n_stations
             ];
@@ -127,9 +133,9 @@ fn main() {
             }
             //println!("src_addr:{}", src_addr);
             match src_addr {
-                SocketAddr::V4(s) => match src_addrs.get(&s) {
+                SocketAddr::V4(s) => match src_addrs.get(&s.into()) {
                     Some(&i) => {
-                        let corr_id = data.pkt_id as usize / csp::cfg::NPKT_PER_CORR;
+                        let corr_id = data.pkt_id as usize / npkt_per_corr;
 
                         if let Some(old_pkt_id) = old_pkt_id_list[i] {
                             if old_pkt_id + 1 != data.pkt_id {
@@ -144,8 +150,8 @@ fn main() {
                         }
 
                         old_pkt_id_list[i] = Some(data.pkt_id);
-                        let _next_corr_id = (data.pkt_id + 1) as usize / NPKT_PER_CORR;
-                        let offset = (data.pkt_id as usize - corr_id * csp::cfg::NPKT_PER_CORR)
+                        let _next_corr_id = (data.pkt_id + 1) as usize / npkt_per_corr;
+                        let offset = (data.pkt_id as usize - corr_id * npkt_per_corr)
                             * NCH_PER_STREAM
                             * 2
                             * csp::cfg::NFRAME_PER_PKT;
@@ -170,7 +176,7 @@ fn main() {
     });
 
     //let mut channelized_data = vec![0_f32; channelizers[0].output_buf_len()];
-    let mut correlator = Correlator::new(NCH_PER_STREAM * nfine_eff, NFRAME_PER_CORR / nfine_full);
+    let mut correlator = Correlator::new(NCH_PER_STREAM * nfine_eff, cfg.nframe_per_corr / nfine_full);
     let mut corr_data = vec![0f32; NCH_PER_STREAM * nfine_eff * 2];
     let mut idx = 0;
     loop {

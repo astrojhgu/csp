@@ -4,7 +4,7 @@ use chrono::prelude::*;
 use tokio::{net::UdpSocket, runtime::Runtime};
 
 use csp::{
-    cfg::{NCH_PER_STREAM, NFRAME_PER_CORR},
+    cfg::{NCH_PER_STREAM, _NFRAME_PER_CORR},
     cspch::{calc_coeff, Correlator, CspChannelizer},
     data_frame::CorrDataQueue,
     utils::write_data,
@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     let addresses = vec!["192.168.1.31:4001", "192.168.1.71:4001"];
     let ndevs = addresses.len();
 
-    let (corr_queue, receiver): (Vec<_>, Vec<_>) = (0..ndevs).map(|_| CorrDataQueue::new()).unzip();
+    let (corr_queue, receiver): (Vec<_>, Vec<_>) = (0..ndevs).map(|_| CorrDataQueue::new(_NFRAME_PER_CORR)).unzip();
     let corr_queue = corr_queue
         .into_iter()
         .map(RefCell::new)
@@ -32,10 +32,10 @@ fn main() -> Result<()> {
     let _t = std::thread::spawn(move || {
         {
             let mut channelizers = (0..ndevs)
-                .map(|_| CspChannelizer::new(NFRAME_PER_CORR, NCH_PER_STREAM, nfine_full, &coeffs))
+                .map(|_| CspChannelizer::new(_NFRAME_PER_CORR, NCH_PER_STREAM, nfine_full, &coeffs))
                 .collect::<Vec<_>>();
             let mut correlator =
-                Correlator::new(NCH_PER_STREAM * nfine_eff, NFRAME_PER_CORR / nfine_full);
+                Correlator::new(NCH_PER_STREAM * nfine_eff, _NFRAME_PER_CORR / nfine_full);
             let mut corr_data = vec![0f32; NCH_PER_STREAM * nfine_eff * 2];
             //let mut idx = 0;
             let mut corr_id_list = Vec::new();

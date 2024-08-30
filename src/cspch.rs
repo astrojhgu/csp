@@ -3,7 +3,7 @@ use crate::{
         channelize, channelize_no_out, create_channelizer, create_correlator, destroy_channelizer,
         Channelizer,
     },
-    cfg::{NCH_PER_STREAM, NFRAME_PER_CORR},
+    cfg::{NCH_PER_STREAM},
 };
 
 pub struct CspChannelizer {
@@ -50,11 +50,11 @@ impl CspChannelizer {
     }
 
     pub fn input_buf_len(&self) -> usize {
-        NCH_PER_STREAM * NFRAME_PER_CORR * 2
+        NCH_PER_STREAM * self.nsteps * 2
     }
 
     pub fn output_buf_len(&self) -> usize {
-        NCH_PER_STREAM * NFRAME_PER_CORR
+        NCH_PER_STREAM * self.nsteps
     }
 }
 

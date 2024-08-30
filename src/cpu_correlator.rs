@@ -1,9 +1,9 @@
-use crate::cfg::{RawDataType, NCH_PER_STREAM, NFRAME_PER_PKT, NPKT_PER_CORR};
+use crate::cfg::{RawDataType, NCH_PER_STREAM, NFRAME_PER_PKT, _NPKT_PER_CORR};
 use num_complex::Complex;
 use rayon::prelude::*;
 
 pub fn correlate(x: &[RawDataType], y: &[RawDataType], corr_result: &mut [f32]) {
-    assert_eq!(x.len(), NCH_PER_STREAM * 2 * NFRAME_PER_PKT * NPKT_PER_CORR);
+    assert_eq!(x.len(), NCH_PER_STREAM * 2 * NFRAME_PER_PKT * _NPKT_PER_CORR);
     assert_eq!(x.len(), y.len());
     assert_eq!(corr_result.len(), 2 * NCH_PER_STREAM);
     let corr_result1 = x
