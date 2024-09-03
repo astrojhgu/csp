@@ -175,11 +175,20 @@ fn main() {
         }
     });
 
+    let running1 = std::sync::Arc::clone(&running);
+    ctrlc::set_handler(move||{
+        println!("bye!");
+        running1.fetch_not(Ordering::SeqCst);
+    }).unwrap();
+
     //let mut channelized_data = vec![0_f32; channelizers[0].output_buf_len()];
     let mut correlator = Correlator::new(NCH_PER_STREAM * nfine_eff, cfg.nframe_per_corr / nfine_full);
     let mut corr_data = vec![0f32; NCH_PER_STREAM * nfine_eff * 2];
     let mut idx = 0;
     loop {
+        if !running.load(Ordering::SeqCst) {
+            break;
+        }
         let mut corr_id_list = Vec::new();
         let mut max_corr_id = 0;
         receiver
@@ -245,17 +254,19 @@ fn main() {
             });
 
         let now = Utc::now();
-        let time_i64 = now.timestamp();
-        let time_filename = format!("{out_prefix}_time.txt");
+        let time_i64 = now.timestamp_millis();
+        let datestr=now.format("%Y%m%d");
+        let time_filename = format!("{out_prefix}_time_{datestr}.txt");
         let mut time_file = OpenOptions::new()
             .append(true)
             .create(true)
             .open(&time_filename)
             .unwrap();
 
-        writeln!(&mut time_file, "{}", time_i64).unwrap();
+        let date_time_str=now.format("%Y-%m-%d %H:%M:%S%.3f");
+        writeln!(&mut time_file, "{} {}", time_i64, date_time_str).unwrap();
 
-        let time_filename = format!("{out_prefix}_time.bin");
+        let time_filename = format!("{out_prefix}_time_{datestr}.bin");
         let mut time_file = OpenOptions::new()
             .append(true)
             .create(true)
@@ -269,7 +280,7 @@ fn main() {
             for j in i..channelizers.len() {
                 if true {
                     correlator.correlate(&channelizers[i], &channelizers[j], &mut corr_data);
-                    let fname = format!("{out_prefix}_{}{}.dat", i, j);
+                    let fname = format!("{out_prefix}_{}{}_{}.dat", i, j, datestr);
                     let mut outfile = OpenOptions::new()
                         .append(true)
                         .create(true)
