@@ -14,7 +14,7 @@ echo $DEST_IPS
 
 cargo run --bin calc_wgt --release -- --cfg $WGT_CFG1 -o /dev/shm/wgt1.bin
 cargo run --bin calc_wgt --release -- --cfg $WGT_CFG2 -o /dev/shm/wgt2.bin
-BC_IP="192.168.4.255"
+BC_IP="192.168.10.255"
 
 for IP in $DEST_IPS
 do
