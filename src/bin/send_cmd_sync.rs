@@ -45,6 +45,7 @@ pub fn main() {
     for (i, msg_content) in msg_contents.into_iter().enumerate() {
         let local_addr = format!("0.0.0.0:{}", args.port);
         let socket = Arc::new(UdpSocket::bind(&local_addr).unwrap());
+        socket.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
         socket.set_broadcast(true).expect("broadcast set failed");
         socket.set_nonblocking(false).expect("nonblocking set failed");
 
