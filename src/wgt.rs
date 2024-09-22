@@ -37,6 +37,7 @@ impl WgtCfg {
 pub fn write_wgt(writer: &mut dyn Write, data: ArrayView2<Complex<f64>>) {
     assert_eq!(data.nrows(), NCH_TOTAL);
     assert_eq!(data.ncols(), NPORTS_PER_STATION);
+    let mut nwritten=0;
     data.as_slice().unwrap().iter().for_each(|x| {
         assert!(x.re.abs() <= 1.0);
         assert!(x.im.abs() <= 1.0);
@@ -44,7 +45,9 @@ pub fn write_wgt(writer: &mut dyn Write, data: ArrayView2<Complex<f64>>) {
         writer
             .write_all(unsafe { std::slice::from_raw_parts(data1.as_ptr() as *const u8, 4) })
             .unwrap();
-    })
+        nwritten+=4;
+    });
+    println!("{} Bytes written", nwritten);
 }
 
 pub fn read_wgt(reader: &mut dyn Read) -> Array2<Complex<f64>> {

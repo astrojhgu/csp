@@ -19,7 +19,7 @@ fn main() {
     let args:Args=Args::parse();
     
     let wgt_cfg:WgtCfg=from_reader(File::open(&args.cfg_file).unwrap()).unwrap();
-    println!("{:?}", wgt_cfg);
+    //println!("{:?}", wgt_cfg);
 
     let wgt=wgt_cfg.calc();
     let mut outfile:Box<dyn Write>=

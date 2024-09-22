@@ -1,4 +1,4 @@
-use std::{io::Read, fs::File};
+use std::{fs::File, io::{Read, Write}};
 use clap::Parser;
 use csp::wgt::{read_wgt, write_wgt};
 use suppaftp::FtpStream;
@@ -43,8 +43,10 @@ fn main(){
 
     for b in beam_id{
         let dest_wgt_file=format!("/ata0:0/config/DbfInitCoeff{}.dat", b);
+        ftp_stream.rm(&dest_wgt_file).unwrap();
         let mut stream=ftp_stream.put_with_stream(&dest_wgt_file).unwrap();
         write_wgt(&mut stream, wgt.view());
+        stream.flush().unwrap();
         ftp_stream.finalize_put_stream(stream).unwrap();
     }
 }

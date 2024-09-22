@@ -105,6 +105,7 @@ impl MsgContent {
             Reset { .. } => reply_msg["msg_type"].as_str().expect("failed to parse") == "Reset", //
             SelfTest { .. } => {
                 reply_msg["msg_type"].as_str().expect("failed to parse") == "SelfTest"
+                    || reply_msg["msg_type"].as_str().expect("failed to parse") == "ChSample"
             } //
             AcquireSample { .. } => {
                 reply_msg["msg_type"].as_str().expect("failed to parse") == "AcquireSample"
@@ -114,7 +115,10 @@ impl MsgContent {
             BeamCtrl { .. } => {
                 reply_msg["msg_type"].as_str().expect("failed to parse") == "BeamCtrl"
             } //
-            MultiCtrl { .. } => matches!(reply_msg["msg_type"].as_str().expect("failed to parse"), "MultiCtrl" | "IPAddr"),
+            MultiCtrl { .. } => matches!(
+                reply_msg["msg_type"].as_str().expect("failed to parse"),
+                "MultiCtrl" | "IPAddr"
+            ),
             AttSet { .. } => reply_msg["msg_type"].as_str().expect("failed to parse") == "AttSet", //
         }
     }

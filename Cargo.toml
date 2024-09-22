@@ -22,7 +22,7 @@ rocket = '0.5.0'
 serde_json = '1.0.85'
 serde_yaml = '0.9.13'
 socket2 = '0.5.5'
-suppaftp = '5.3.0'
+suppaftp = '6.0.1'
 
 
 [dependencies.clap]

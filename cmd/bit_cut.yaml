@@ -1,4 +1,4 @@
 - !BitCut
-  fft_cut: 2
-  filter_cut: 0
-  dbf_cut: 7
+  fft_cut: 3
+  filter_cut: 5
+  dbf_cut: 4
